@@ -1,220 +1,191 @@
 #include <iostream>
-#include <vector>
-#include <climits>
+#include <tuple>
+#include <list>
+#include <queue>
 #include <algorithm>
+
+#define INFINITO 0x3f3f3f3f
 
 using namespace std;
 
-class Vila {
-public:
-  int _id;
-};
-
-
-
-class Estrada {
-public:
-  Vila _origem;
-  Vila _destino;
-
-  bool _usada;
-
-  int _ano, _tempo, _custo;
-};
-
-
+// Definição de Estrada <Destino, Ano, Tempo, Custo>
+typedef tuple<int64_t, int64_t, int64_t, int64_t> estrada;
 
 class Balconia {
+	int64_t num_vilas; // Número de vértices
+
+	list<estrada>* estradas; // Lista de arestas
+
 public:
-  int _numero_vilas;
-  int _numero_estradas;
+	Balconia(int64_t N);
 
-  vector<Vila> vilas;
-  vector<Estrada> estradas;
+	void adicionaEstrada(int64_t o, int64_t d, int64_t a, int64_t t, int64_t c);
 
-  void preencherVilas() {
-    for (int i = 1; i <= _numero_vilas; i++) {
-      Vila vila;
-      vila._id = i;
-      vilas.push_back(vila);
-    }
-  }
+	void caminhoMinimo();
+
+  void arvoreCusto();
+  void arvoreAno();
 };
 
 
 
-class UnionFind {
-private:
-  vector<int> pai;
-  vector<int> rank;
-
-public:
-  UnionFind(int n) {
-    pai.resize(n, -1);
-    rank.resize(n, 1);
-  }
-
-  int find(int i) {
-    if (pai[i] == -1)
-      return i;
-
-    return pai[i] = find(pai[i]);
-  }
-
-  void unite(int x, int y) {
-    int s1 = find(x);
-    int s2 = find(y);
-
-    if (s1 != s2) {
-      if (rank[s1] < rank[s2]) {
-        pai[s1] = s2;
-      }
-      else if (rank[s1] > rank[s2]) {
-        pai[s2] = s1;
-      }
-      else {
-        pai[s2] = s1;
-        rank[s1] += 1;
-      }
-    }
-  }
-};
-
-
-
-void Kruskal(Balconia balconia, function<bool(const Estrada&, const Estrada&)> comparacao, bool tipo) {
-  sort(balconia.estradas.begin(), balconia.estradas.end(), comparacao);
-
-  UnionFind U(balconia._numero_vilas);
-
-  int ans = 0;
-  int ano_maximo = INT_MIN;
-
-  for (auto e : balconia.estradas) {
-    int w = e._custo;
-    int x = e._origem._id - 1;
-    int y = e._destino._id - 1;
-
-    if (U.find(x) != U.find(y)) {
-      U.unite(x, y);
-
-      if (tipo) {
-        ans += e._custo;
-      } else if (e._ano > ano_maximo) {
-        ano_maximo = e._ano;
-      }
-    }
-    else if (U.find(y) != U.find(x)) {
-      U.unite(y, x);
-
-      if (tipo) {
-        ans += e._custo;
-      } else if (e._ano > ano_maximo) {
-        ano_maximo = e._ano;
-      }
-    }
-  }
-
-  if (tipo) {
-    cout << "N+3: " << ans << endl; 
-  } else {
-    cout << "N+2: " << ano_maximo << endl; 
-  }
-} 
-
-
-
-void BelmannFord(Balconia balconia) {
-  int num_vilas = balconia._numero_vilas;
-  int num_estradas = balconia._numero_estradas;
-
-  int distancias[num_vilas];
-  Estrada* estrada_max_ano = nullptr;  // Para armazenar a estrada com o ano máximo.
-
-  for (int i = 0; i < num_vilas; i++) {
-    distancias[i] = INT_MAX;
-  }
-  distancias[0] = 0;
-
-  for (int i = 1; i <= num_vilas - 1; i++) {
-    for (int j = 0; j < num_estradas; j++) {
-      int u = balconia.estradas[j]._origem._id - 1;
-      int v = balconia.estradas[j]._destino._id - 1;
-
-      int tempo = balconia.estradas[j]._tempo;
-      if (distancias[u] != INT_MAX && distancias[u] + tempo < distancias[v]) {
-        distancias[v] = distancias[u] + tempo;
-
-        // Marcar a estrada como usada no caminho mínimo.
-        balconia.estradas[j]._usada = true;
-
-        // Verificar se essa é a estrada com o ano máximo até agora.
-        if (!estrada_max_ano || balconia.estradas[j]._ano > estrada_max_ano->_ano) {
-          estrada_max_ano = &balconia.estradas[j];
-        }
-      }
-
-      if (distancias[v] != INT_MAX && distancias[v] + tempo < distancias[u]) {
-        distancias[u] = distancias[v] + tempo;
-
-        // Marcar a estrada como usada no caminho mínimo.
-        balconia.estradas[j]._usada = true;
-
-        // Verificar se essa é a estrada com o ano máximo até agora.
-        if (!estrada_max_ano || balconia.estradas[j]._ano > estrada_max_ano->_ano) {
-          estrada_max_ano = &balconia.estradas[j];
-        }
-      }
-    }
-  }
-
-  for (int i = 0; i < num_vilas; ++i) {
-    cout << distancias[i] << endl;
-  }
-  cout << "N+1: " << estrada_max_ano->_ano << endl;
-
-  return;
+// Construtor do grafo
+Balconia::Balconia(int64_t V) {
+	this->num_vilas = V;
+	estradas = new list<estrada>[V];
 }
 
 
 
+// Adiciona uma aresta (dado que é bidirecional)
+void Balconia::adicionaEstrada(int64_t o, int64_t d, int64_t a, int64_t t, int64_t c) {
+	estradas[o].push_back(make_tuple(d, a, t, c));
+	estradas[d].push_back(make_tuple(o, a, t, c));
+}
 
-int main() {
-  int N, M;
-  cin >> N >> M;
 
-  Balconia balconia;
-  balconia._numero_vilas = N;
-  balconia._numero_estradas = M;
-  balconia.preencherVilas();
 
-  for (int i = 0; i < M; i++) {
-    int id1, id2;
-    cin >> id1 >> id2;
+void Balconia::caminhoMinimo() {
+	priority_queue<estrada, vector<estrada>, greater<estrada>> fila;
 
-    Vila origem;
-    Vila destino;
+  // Inicializa as distâncias com infinito
+	vector<int64_t> distancias(num_vilas, INFINITO);
 
-    origem._id = id1;
-    destino._id = id2;
+  // Vetor para encontrar o o primeiro ano em que todas 
+  // distâncias podem ser realizadas ao mesmo tempo
+  vector<int64_t> anoMaxPorCaminho(num_vilas, -1);
 
-    int ano, tempo, custo;
-    cin >> ano >> tempo >> custo;
+	fila.push(make_tuple(0, 0, 0, 0));
+	distancias[0] = 0;
 
-    Estrada e;
-    e._origem = origem;
-    e._destino = destino;
-    e._ano = ano;
-    e._tempo = tempo;
-    e._custo = custo;
+	while (!fila.empty()) {
+    // Pega a vila de maior prioridade na fila
+		int64_t u = get<1>(fila.top());
+		fila.pop();
 
-    balconia.estradas.push_back(e);
+		for (auto& e : estradas[u]) {
+			int64_t v = get<0>(e); // Próxima vila alcançável
+			int64_t ano = get<1>(e);
+			int64_t tempo = get<2>(e);
+
+			if (distancias[v] > distancias[u] + tempo) {
+				distancias[v] = distancias[u] + tempo;
+				anoMaxPorCaminho[v] = max(anoMaxPorCaminho[u], ano);
+				fila.push(make_tuple(distancias[v], v, 0, 0));
+			}
+		}
+	}
+
+  // Imprime as distâncias mínimas para todas as vilas
+	for (int64_t i = 0; i < num_vilas; i++) {
+		printf("%ld\n", distancias[i]);
+	}
+
+  // Encontra e imprime o ano máximo entre todas as estradas percorridas
+  int64_t anoMax = *max_element(anoMaxPorCaminho.begin(), anoMaxPorCaminho.end());
+  printf("%ld\n", anoMax);
+}
+
+
+
+void Balconia::arvoreAno() {
+  priority_queue<estrada, vector<estrada>, greater<estrada>> fila;
+  
+  // Um vetor para marcar vilas como visitadas
+  vector<bool> visitados(num_vilas, false);
+
+  // Variavel para armazenar o ano máximo da árvore
+  int64_t anoMaximo = -1;
+
+  fila.push({0, 0, 0, 0});
+
+  while (!fila.empty()) {
+    // Pega a vila de maior prioridade na fila
+    auto aux = fila.top();
+    fila.pop();
+
+    int64_t ano = get<0>(aux);
+    int64_t u = get<1>(aux);
+
+    if (visitados[u] == true) {
+      continue; // Se a vila já foi visitada, continua para a próxima iteração
+    }
+
+    // Atualiza o ano máximo se necessário
+    if (ano > anoMaximo) anoMaximo = ano;
+    visitados[u] = true; // Marca a vila como visitada
+
+
+    for (auto v : estradas[u]) {
+      if (visitados[get<0>(v)] == false) {
+        // Adiciona vilas vizinhas à fila
+        fila.push({get<1>(v), get<0>(v), get<2>(v), get<3>(v)});
+      }
+    }
   }
 
-  BelmannFord(balconia);
+  printf("%ld\n", anoMaximo);
+}
 
-  Kruskal(balconia, [](const Estrada& a, const Estrada& b) { return a._ano < b._ano; }, false);
-  Kruskal(balconia, [](const Estrada& a, const Estrada& b) { return a._custo < b._custo; }, true);
 
-  return 0;
+
+void Balconia::arvoreCusto() {
+  priority_queue<estrada, vector<estrada>, greater<estrada>> fila;
+  
+  // Um vetor para marcar vilas como visitadas
+  vector<bool> visitados(num_vilas, false);
+
+  // Variavel para armazenar o a o menor custo possível
+  // para  chegar de qualquer vila a qualquer outra
+  int64_t custoTotal = 0;
+
+  fila.push({0, 0, 0, 0});
+
+  while (!fila.empty()) {
+    auto aux = fila.top();
+    fila.pop();
+
+    int64_t custo = get<0>(aux);
+    int64_t u = get<3>(aux);
+
+    if (visitados[u] == true) {
+      continue; // Se a vila já foi visitada, continue para a próxima iteração
+    }
+
+    custoTotal += custo;
+    visitados[u] = true; // Marca a vila como visitada
+
+    for (auto v : estradas[u]) {
+      if (visitados[get<0>(v)] == false) {
+        // Adiciona vilas vizinhas à fila
+        fila.push({get<3>(v), get<1>(v), get<2>(v), get<0>(v)});
+      }
+    }
+  }
+
+  printf("%ld\n", custoTotal);
+}
+
+
+
+int main() {
+	int64_t N, M;
+	scanf("%ld %ld", &N, &M);
+	Balconia g(N);
+
+	for (int64_t i = 0; i < M; i++) {
+    int64_t o, u, a, t, c;
+    scanf("%ld %ld %ld %ld %ld", &o, &u, &a, &t, &c);
+
+    o = o - 1;
+    u = u - 1;
+
+    g.adicionaEstrada(o, u, a, t, c);
+	}
+
+	g.caminhoMinimo();
+  g.arvoreAno();
+  g.arvoreCusto();
+
+	return 0;
 }
