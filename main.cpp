@@ -4,22 +4,22 @@
 #include <queue>
 #include <algorithm>
 
-#define INFINITO 0x3f3f3f3f
+#define INFINITO 0x3f3f3f3f3f3f3f3f
 
 using namespace std;
 
 // Definição de Estrada <Destino, Ano, Tempo, Custo>
-typedef tuple<int64_t, int64_t, int64_t, int64_t> estrada;
+typedef tuple<int, int, int64_t, int64_t> estrada;
 
 class Balconia {
-	int64_t num_vilas; // Número de vértices
+	int num_vilas; // Número de vértices
 
 	list<estrada>* estradas; // Lista de arestas
 
 public:
-	Balconia(int64_t N);
+	Balconia(int N);
 
-	void adicionaEstrada(int64_t o, int64_t d, int64_t a, int64_t t, int64_t c);
+	void adicionaEstrada(int o, int d, int64_t a, int64_t t, int64_t c);
 
 	void caminhoMinimo();
 
@@ -30,15 +30,15 @@ public:
 
 
 // Construtor do grafo
-Balconia::Balconia(int64_t V) {
-	this->num_vilas = V;
-	estradas = new list<estrada>[V];
+Balconia::Balconia(int N) {
+	this->num_vilas = N;
+	estradas = new list<estrada>[N];
 }
 
 
 
 // Adiciona uma aresta (dado que é bidirecional)
-void Balconia::adicionaEstrada(int64_t o, int64_t d, int64_t a, int64_t t, int64_t c) {
+void Balconia::adicionaEstrada(int o, int d, int64_t a, int64_t t, int64_t c) {
 	estradas[o].push_back(make_tuple(d, a, t, c));
 	estradas[d].push_back(make_tuple(o, a, t, c));
 }
@@ -60,11 +60,11 @@ void Balconia::caminhoMinimo() {
 
 	while (!fila.empty()) {
     // Pega a vila de maior prioridade na fila
-		int64_t u = get<1>(fila.top());
+		int u = get<1>(fila.top());
 		fila.pop();
 
 		for (auto& e : estradas[u]) {
-			int64_t v = get<0>(e); // Próxima vila alcançável
+			int v = get<0>(e); // Próxima vila alcançável
 			int64_t ano = get<1>(e);
 			int64_t tempo = get<2>(e);
 
@@ -77,7 +77,7 @@ void Balconia::caminhoMinimo() {
 	}
 
   // Imprime as distâncias mínimas para todas as vilas
-	for (int64_t i = 0; i < num_vilas; i++) {
+	for (int i = 0; i < num_vilas; i++) {
 		printf("%ld\n", distancias[i]);
 	}
 
@@ -105,7 +105,7 @@ void Balconia::arvoreAno() {
     fila.pop();
 
     int64_t ano = get<0>(aux);
-    int64_t u = get<1>(aux);
+    int u = get<1>(aux);
 
     if (visitados[u] == true) {
       continue; // Se a vila já foi visitada, continua para a próxima iteração
@@ -146,7 +146,7 @@ void Balconia::arvoreCusto() {
     fila.pop();
 
     int64_t custo = get<0>(aux);
-    int64_t u = get<3>(aux);
+    int u = get<3>(aux);
 
     if (visitados[u] == true) {
       continue; // Se a vila já foi visitada, continue para a próxima iteração
@@ -166,26 +166,32 @@ void Balconia::arvoreCusto() {
   printf("%ld\n", custoTotal);
 }
 
-
-
 int main() {
-	int64_t N, M;
-	scanf("%ld %ld", &N, &M);
-	Balconia g(N);
+  int N, M;
+  if (scanf("%d %d", &N, &M) != 2) {
+    printf("Erro ao ler N e M\n");
+    return 1;
+  }
 
-	for (int64_t i = 0; i < M; i++) {
-    int64_t o, u, a, t, c;
-    scanf("%ld %ld %ld %ld %ld", &o, &u, &a, &t, &c);
+  Balconia g(N);
+
+  for (int i = 0; i < M; i++) {
+    int o, u;
+    int64_t a, t, c;
+    if (scanf("%d %d %ld %ld %ld", &o, &u, &a, &t, &c) != 5) {
+      printf("Erro ao ler os parâmetros da estrada %d\n", i + 1);
+      return 1;
+    }
 
     o = o - 1;
     u = u - 1;
 
     g.adicionaEstrada(o, u, a, t, c);
-	}
+  }
 
-	g.caminhoMinimo();
+  g.caminhoMinimo();
   g.arvoreAno();
   g.arvoreCusto();
 
-	return 0;
+  return 0;
 }
