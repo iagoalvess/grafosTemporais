@@ -18,6 +18,7 @@ class Balconia {
 
 public:
 	Balconia(int N);
+  ~Balconia();
 
 	void adicionaEstrada(int o, int d, int64_t a, int64_t t, int64_t c);
 
@@ -33,6 +34,12 @@ public:
 Balconia::Balconia(int N) {
 	this->num_vilas = N;
 	estradas = new list<estrada>[N];
+}
+
+
+
+Balconia::~Balconia() {
+  delete[] estradas;
 }
 
 
